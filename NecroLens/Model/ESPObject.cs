@@ -1,12 +1,12 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
-using System.Linq;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using NecroLens.Data;
 using NecroLens.util;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
+using System.Linq;
 
 namespace NecroLens.Model;
 
@@ -102,7 +102,7 @@ public class ESPObject
                 Type = ESPType.Mimic;
         }
     }
-    
+
     public Pomander? ContainingPomander { get; set; }
 
     public GameObject GameObject { get; }
@@ -119,7 +119,7 @@ public class ESPObject
      */
     public float AggroDistance()
     {
-        return Type == ESPType.Mimic && DeepDungeonUtil.InPotD ? 14.6f : 10.8f;
+        return GameObject.HitboxRadius + (Type == ESPType.Mimic && DeepDungeonUtil.InPotD ? 14f : 10f);
     }
 
     public ESPAggroType AggroType()

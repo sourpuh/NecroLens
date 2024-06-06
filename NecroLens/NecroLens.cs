@@ -1,14 +1,15 @@
-﻿#undef DEBUG
+#undef DEBUG
 
 
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using ECommons;
 using NecroLens.Model;
 using NecroLens.Service;
 using NecroLens.Windows;
+using Pictomancy;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace NecroLens;
 
@@ -34,6 +35,8 @@ public sealed class NecroLens : IDalamudPlugin
     {
         pluginInterface?.Create<PluginService>();
         Plugin = this;
+
+        pluginInterface?.Create<PictoService>();
 
         ECommonsMain.Init(pluginInterface, this, Module.DalamudReflector);
 
@@ -84,6 +87,8 @@ public sealed class NecroLens : IDalamudPlugin
         espTestService.Dispose();
 #endif
         mobInfoService.Dispose();
+
+        PictoService.Dispose();
     }
 
     private void DrawUI()

@@ -1,15 +1,15 @@
-﻿using System;
+using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Objects.Types;
+using NecroLens.Model;
+using NecroLens.util;
+using Pictomancy;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.Types;
-using ImGuiNET;
-using NecroLens.Model;
-using NecroLens.util;
 using static NecroLens.util.ESPUtils;
 
 namespace NecroLens.Service;
@@ -27,7 +27,6 @@ public class ESPService : IDisposable
     public ESPService()
     {
         PluginLog.Debug("ESP Service loading...");
-
         mapObjects = new List<ESPObject>();
         conf = Config;
 
@@ -71,8 +70,10 @@ public class ESPService : IDisposable
         {
             if (!Monitor.TryEnter(mapObjects)) return;
 
-            var drawList = ImGui.GetBackgroundDrawList();
-            foreach (var gameObject in mapObjects) DrawEspObject(drawList, gameObject);
+            using (var drawList = PictoService.Draw())
+            {
+                foreach (var gameObject in mapObjects) DrawEspObject(drawList, gameObject);
+            }
 
             Monitor.Exit(mapObjects);
         }
@@ -101,7 +102,7 @@ public class ESPService : IDisposable
     /**
      * Draws every Object for the ESP-Overlay.
      */
-    private void DrawEspObject(ImDrawListPtr drawList, ESPObject espObject)
+    private void DrawEspObject(PctDrawList drawList, ESPObject espObject)
     {
         var type = espObject.Type;
         var onScreen = GameGui.WorldToScreen(espObject.GameObject.Position, out var position2D);
@@ -110,10 +111,10 @@ public class ESPService : IDisposable
             var distance = espObject.Distance();
 
             if (conf.ShowPlayerDot && type == ESPObject.ESPType.Player)
-                DrawPlayerDot(drawList, position2D);
+                DrawPlayerDot(drawList, espObject.GameObject.Position);
 
             if (DoDrawName(espObject))
-                DrawName(drawList, espObject, position2D);
+                DrawName(drawList, espObject);
 
             if (espObject.Type == ESPObject.ESPType.AccursedHoard && conf.ShowHoards && !DungeonService.FloorDetails.HoardFound)
             {
@@ -164,13 +165,13 @@ public class ESPService : IDisposable
                         break;
                     case ESPObject.ESPAggroType.Sound:
                         DrawCircle(drawList, espObject, espObject.AggroDistance(),
-                                   conf.SoundAggroColor, DefaultFilledOpacity);
+                                   conf.SoundAggroColor);
                         DrawCircleFilled(drawList, espObject, espObject.GameObject.HitboxRadius,
                                          conf.SoundAggroColor, DefaultFilledOpacity);
                         break;
                     case ESPObject.ESPAggroType.Sight:
                         DrawConeFromCenterPoint(drawList, espObject, espObject.SightRadian,
-                                                espObject.AggroDistance(), conf.NormalAggroColor);
+                                                espObject.AggroDistance(), conf.NormalAggroColor.SetAlpha(DefaultFilledOpacity));
                         break;
                     default:
                         PluginLog.Error(
@@ -191,7 +192,7 @@ public class ESPService : IDisposable
                  Condition[ConditionFlag.BetweenAreas] ||
                  Condition[ConditionFlag.BetweenAreas51]) &&
                DeepDungeonUtil.InDeepDungeon && ClientState.LocalPlayer != null &&
-               ClientState.LocalContentId > 0 && ObjectTable.Length > 0 && 
+               ClientState.LocalContentId > 0 && ObjectTable.Length > 0 &&
                !DungeonService.FloorDetails.FloorTransfer;
     }
 
@@ -219,8 +220,8 @@ public class ESPService : IDisposable
                                 MobService.MobInfoDictionary.TryGetValue(npcObj.NameId, out mobInfo!);
 
                             var espObj = new ESPObject(obj, mobInfo);
-                            
-                            if (obj.DataId == DataIds.GoldChest 
+
+                            if (obj.DataId == DataIds.GoldChest
                                 && DungeonService.FloorDetails.DoubleChests.TryGetValue(obj.ObjectId, out var value))
                             {
                                 espObj.ContainingPomander = value;

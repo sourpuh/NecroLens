@@ -20,7 +20,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Remove="data\*.json"/>
+        <None Remove="data\*.json" />
     </ItemGroup>
 
     <ItemGroup>
@@ -43,7 +43,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.12"/>
+        <PackageReference Include="DalamudPackager" Version="2.1.12" />
         <Reference Include="FFXIVClientStructs">
             <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
             <Private>false</Private>
@@ -91,6 +91,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
+        <ProjectReference Include="M:\Projects\ffxiv_pictomancy\Pictomancy\Pictomancy.csproj" />
     </ItemGroup>
 
 </Project>

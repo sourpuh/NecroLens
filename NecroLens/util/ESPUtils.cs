@@ -1,11 +1,11 @@
-﻿using System;
+using Dalamud.Game.ClientState.Objects.Types;
+using NecroLens.Model;
+using Pictomancy;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
-using Dalamud.Game.ClientState.Objects.Types;
-using ImGuiNET;
-using NecroLens.Model;
 
 namespace NecroLens.util;
 
@@ -30,7 +30,7 @@ public static class ESPUtils
         return false;
     }
 
-    public static void DrawName(ImDrawListPtr drawList, ESPObject espObject, Vector2 position)
+    public static void DrawName(PctDrawList drawList, ESPObject espObject)
     {
         var name = espObject.Name();
 
@@ -39,137 +39,65 @@ public static class ESPUtils
             name += "\n" + DungeonService.PomanderNames[espObject.ContainingPomander.Value];
         }
 
-        var textSize = ImGui.CalcTextSize(name);
-        // Center name on position
-        var textPosition = new Vector2(position.X - (textSize.X / 2f), position.Y + (textSize.Y / 2f));
-        drawList.AddText(textPosition, espObject.RenderColor(), name);
+        drawList.AddText(espObject.GameObject.Position, espObject.RenderColor(), name);
     }
 
-    public static void DrawPlayerDot(ImDrawListPtr drawList, Vector2 position)
+    public static void DrawPlayerDot(PctDrawList drawList, Vector3 position)
     {
-        drawList.AddCircleFilled(position, 3f, Config.PlayerDotColor, 100);
+        drawList.AddDot(position, 3f, Config.PlayerDotColor, 100);
     }
 
-    public static void DrawInteractionCircle(ImDrawListPtr drawList, ESPObject espObject, float radius)
+    public static void DrawInteractionCircle(PctDrawList drawList, ESPObject espObject, float radius)
     {
         var color = Color.White.ToUint(1 - (espObject.Distance() / (radius + 5)));
-        DrawCircleInternal(drawList, espObject, radius, color, false, 1f);
-        drawList.PathClear();
+        drawList.AddCircle(espObject.GameObject.Position, radius, color);
     }
 
     public static void DrawConeFromCenterPoint(
-        ImDrawListPtr drawList, ESPObject espObject, float angleRadian, float radius, uint outlineColor)
+        PctDrawList drawList, ESPObject espObject, float angleRadian, float radius, uint outlineColor, float thickness = DefaultCircleThickness)
     {
         var position = espObject.GameObject.Position;
-        var rotation = espObject.GameObject.Rotation + (MathF.PI / 4);
-        var partialCircleSegmentRotation = angleRadian / CircleSegments;
-        var coneColor = outlineColor.SetAlpha(0.2f);
+        var rotation = -espObject.GameObject.Rotation;
+        var coneColor = outlineColor.SetAlpha(0.1f);
 
-        GameGui.WorldToScreen(new Vector3(position.X, position.Y, position.Z),
-                                            out var originPositionOnScreen);
-        drawList.PathLineTo(originPositionOnScreen);
-        for (var i = 0; i <= CircleSegments; i++)
-        {
-            var currentRotation = rotation - (i * partialCircleSegmentRotation);
-            var xValue = radius * MathF.Sin(currentRotation);
-            var yValue = radius * MathF.Cos(currentRotation);
-            GameGui.WorldToScreen(new Vector3(position.X + xValue, position.Y, position.Z + yValue),
-                                                out var segmentVectorOnCircle);
-            drawList.PathLineTo(segmentVectorOnCircle);
-        }
-
-        drawList.PathFillConvex(coneColor);
-        drawList.PathClear();
-        drawList.PathLineTo(originPositionOnScreen);
-        for (var i = 0; i <= CircleSegments; i++)
-        {
-            var currentRotation = rotation - (i * partialCircleSegmentRotation);
-            var xValue = radius * MathF.Sin(currentRotation);
-            var yValue = radius * MathF.Cos(currentRotation);
-            GameGui.WorldToScreen(new Vector3(position.X + xValue, position.Y, position.Z + yValue),
-                                                out var segmentVectorOnCircle);
-            drawList.PathLineTo(segmentVectorOnCircle);
-        }
-
-        drawList.PathLineTo(originPositionOnScreen);
-
-        drawList.PathStroke(outlineColor);
+        drawList.AddConeFilled(position, radius, rotation, angleRadian, coneColor);
+        drawList.PathLineTo(position);
+        var halfAngle = angleRadian / 2;
+        drawList.PathArcTo(position, radius, rotation - halfAngle, rotation + halfAngle);
+        drawList.PathStroke(outlineColor, PctDrawFlags.Closed, thickness);
     }
 
     public static void DrawCircleFilled(
-        ImDrawListPtr drawList, ESPObject espObject, float radius, uint circleColor,
+        PctDrawList drawList, ESPObject espObject, float radius, uint circleColor,
         float thickness = DefaultCircleThickness)
     {
         var filledColor = circleColor.SetAlpha(0.15f);
-
-        DrawCircleInternal(drawList, espObject, radius, circleColor, false, thickness);
-        DrawCircleInternal(drawList, espObject, radius, filledColor, true, thickness);
-        drawList.PathClear();
+        drawList.AddCircleFilled(espObject.GameObject.Position, radius, filledColor);
     }
 
     public static void DrawCircle(
-        ImDrawListPtr drawList, ESPObject espObject, float radius, uint color,
+        PctDrawList drawList, ESPObject espObject, float radius, uint color,
         float opacity = 1f, float thickness = DefaultCircleThickness)
     {
-        DrawCircleInternal(drawList, espObject, radius, color.SetAlpha(opacity), false, thickness);
-        drawList.PathClear();
-    }
-
-    private static void DrawDottedCircle(
-        ImDrawListPtr drawList, ESPObject espObject, float radius, uint color, float thickness)
-    {
-        var position = espObject.GameObject.Position;
-        var circleSegmentFullRotation = 2 * MathF.PI / 60;
-        for (var i = 0; i <= 60; i++)
-        {
-            var currentRotation = i * circleSegmentFullRotation;
-            var xValue = radius * MathF.Sin(currentRotation);
-            var yValue = radius * MathF.Cos(currentRotation);
-            GameGui.WorldToScreen(new Vector3(position.X + xValue, position.Y, position.Z + yValue),
-                                                out var segment);
-            // drawList.PathLineTo(segment);
-            drawList.PathArcTo(segment, 1f, 1f, 1f);
-            drawList.PathStroke(color, ImDrawFlags.RoundCornersDefault, thickness);
-        }
+        drawList.AddCircle(espObject.GameObject.Position, radius, color.SetAlpha(opacity));
     }
 
     public static void DrawFacingDirectionArrow(
-        ImDrawListPtr drawList, ESPObject espObject, uint color,
+        PctDrawList drawList, ESPObject espObject, uint color,
         float opacity = 1f, float thickness = DefaultCircleThickness)
     {
         var points = new List<(float, float)>
         {
-            (4, -40), (6f, 0), (4, 40), (3.9f, 11), (2f, 22), (2f, -22), (3.9f, -11), (4, -40)
+            (4, -40), (6f, 0), (4, 40), (3.9f, 11), (2f, 22), (2f, -22), (3.9f, -11)
         };
+
         foreach (var (radian, steps) in points)
-            drawList.PathLineTo(CreatePointAroundObjectOnScreen(espObject, radian, steps));
+            drawList.PathLineTo(CreatePointAroundObject(espObject, radian, steps));
 
-        drawList.PathStroke(color.SetAlpha(opacity), ImDrawFlags.RoundCornersDefault, thickness);
-        drawList.PathClear();
+        drawList.PathStroke(color.SetAlpha(opacity), PctDrawFlags.Closed, thickness);
     }
 
-    private static void DrawCircleInternal(
-        ImDrawListPtr drawList, ESPObject espObject, float radius, uint color, bool filled,
-        float thickness)
-    {
-        var position = espObject.GameObject.Position;
-        for (var i = 0; i <= CircleSegments; i++)
-        {
-            var currentRotation = i * CircleSegmentFullRotation;
-            var xValue = radius * MathF.Sin(currentRotation);
-            var yValue = radius * MathF.Cos(currentRotation);
-            GameGui.WorldToScreen(new Vector3(position.X + xValue, position.Y, position.Z + yValue),
-                                                out var segment);
-            drawList.PathLineTo(segment);
-        }
-
-        if (filled)
-            drawList.PathFillConvex(color);
-        else
-            drawList.PathStroke(color, ImDrawFlags.RoundCornersDefault, thickness);
-    }
-
-    private static Vector2 CreatePointAroundObjectOnScreen(ESPObject espObject, float radian, float steps)
+    private static Vector3 CreatePointAroundObject(ESPObject espObject, float radian, float steps)
     {
         var pos = espObject.GameObject.Position;
         var rotation = espObject.GameObject.Rotation;
@@ -178,7 +106,6 @@ public static class ESPUtils
         var xValue = radian * MathF.Sin(stepRotation);
         var yValue = radian * MathF.Cos(stepRotation);
         var stepPos = pos with { X = pos.X + xValue, Z = pos.Z + yValue };
-        GameGui.WorldToScreen(stepPos, out var segment);
-        return segment;
+        return stepPos;
     }
 }

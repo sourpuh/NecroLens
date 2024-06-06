@@ -1,10 +1,8 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
 using Dalamud.Game.ClientState.Conditions;
 using ImGuiNET;
 using NecroLens.Model;
-using NecroLens.util;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace NecroLens.Service;
 
@@ -41,7 +39,7 @@ public class ESPTestService : IDisposable
                 // drawList.PathStroke(ColorUtils.ToUint(Color.Red, 0.8f), ImDrawFlags.RoundCornersDefault, 2f);
                 // drawList.PathClear();
 
-                ESPUtils.DrawFacingDirectionArrow(drawList, espObject, Color.Red.ToUint(), 1f, 4f);
+                //ESPUtils.DrawFacingDirectionArrow(drawList, espObject, Color.Red.ToUint(), 1f, 4f);
             }
         }
     }
